@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="om">
+<head>
+  <meta charset="UTF-8">
+  <title>Web Chat Voice + Text</title>
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #f2f2f2;
+    }
+
+    .box {
+      max-width: 600px;
+      margin: auto;
+      margin-top: 20px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 10px gray;
+    }
+
+    .header {
+      background: #2c3e50;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .messages {
+      height: 350px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .msg {
+      background: #e3f2fd;
+      padding: 8px;
+      margin: 5px 0;
+      border-radius: 6px;
+      width: fit-content;
+      max-width: 80%;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      border-top: 1px solid #ccc;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      background: #2c3e50;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1a242f;
+    }
+
+    .small {
+      font-size: 12px;
+      padding: 5px;
+      background: #ddd;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <div class="header">💬 Web Chat + Voice Demo</div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="controls">
+    <input id="text" placeholder="Message barreessi...">
+    <button onclick="sendText()">Ergi</button>
+    <button onclick="startVoice()">🎤 Speak</button>
+    <button onclick="stopVoice()">⏹ Stop</button>
+  </div>
+</div>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+function addMsg(text) {
+  let div = document.createElement("div");
+  div.className = "msg";
+  div.innerText = text;
+  document.getElementById("messages").appendChild(div);
+
+  // auto scroll
+  document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+}
+
+function sendText() {
+  let input = document.getElementById("text");
+  if (input.value.trim() === "") return;
+
+  addMsg("👤: " + input.value);
+
+  // fake reply
+  setTimeout(() => {
+    addMsg("🤖: " + input.value);
+  }, 500);
+
+  input.value = "";
+}
+
+// Speech to text (voice input)
+function startVoice() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Browser kee hin deggaru voice recognition");
+    return;
+  }
+
+  let recognition = new webkitSpeechRecognition();
+  recognition.lang = "om"; // Afaan Oromoo (may fallback)
+  recognition.start();
+
+  recognition.onresult = function(event) {
+    let text = event.results[0][0].transcript;
+    addMsg("🎤: " + text);
+
+    setTimeout(() => {
+      addMsg("🤖: " + text);
+    }, 500);
+  };
+}
+
+// Audio recording (voice message)
+function stopVoice() {
+  if (mediaRecorder) {
+    mediaRecorder.stop();
+  }
+}
+
+// Real mic recording
+navigator.mediaDevices.getUserMedia({ audio: true })
+  .then(stream => {
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = e => {
+      audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      let audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      let audioUrl = URL.createObjectURL(audioBlob);
+
+      let audio = document.createElement("audio");
+      audio.controls = true;
+      audio.src = audioUrl;
+
+      let div = document.createElement("div");
+      div.className = "msg";
+      div.appendChild(audio);
+
+      document.getElementById("messages").appendChild(div);
+      audioChunks = [];
+    };
+  });
+</script>
+
+</body>
+</html>
